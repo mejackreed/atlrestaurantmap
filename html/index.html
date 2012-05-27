@@ -1,0 +1,210 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Atlanta Health Inpection Scores</title>
+		<meta name="description" content="A map showing metro Atlanta area restaurants and their recent health inspection scores.">
+		<meta name="keywords" content="atlanta health inspection, atlanta restaurant map, atl health scores, food scores, atlanta">
+		<link href='http://fonts.googleapis.com/css?family=Bree+Serif' rel='stylesheet' type='text/css'>
+		<link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
+		<link href="css/style.css" rel="stylesheet" type="text/css" />
+		<link rel="icon" href="favicon.ico" type="image/x-icon">
+		<script type="text/javascript" src="http://www.google.com/jsapi"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
+		<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false"></script>
+		<script type="text/javascript" src="http://maps.stamen.com/js/tile.stamen.js"></script>
+		<script type="text/javascript">
+			google.load('visualization', '1');
+
+			$(document).ready(function() {
+				$("#tabs").tabs();
+			});
+			var pointLayer;
+			var locationColumn = 'address';
+			var tableId = '3779309';
+			var map;
+			function initialize() {
+				var geocoder = new google.maps.Geocoder();
+				var layer = "toner";
+				map = new google.maps.Map(document.getElementById("map_canvas"), {
+					center : new google.maps.LatLng(33.7489, -84.3881),
+					zoom : 11,
+					mapTypeId : layer,
+					mapTypeControl : false,
+					panControl : true,
+					panControlOptions : {
+						position : google.maps.ControlPosition.RIGHT
+					},
+					zoomControl : true,
+					zoomControlOptions : {
+						position : google.maps.ControlPosition.RIGHT
+					},
+					scaleControl : true,
+					scaleControlOptions : {
+						position : google.maps.ControlPosition.BOTTOM_LEFT
+					},
+					streetViewControl : true,
+					streetViewControlOptions : {
+						position : google.maps.ControlPosition.RIGHT
+					}
+				});
+				whereDefault = "'score' > 0";
+				map.mapTypes.set(layer, new google.maps.StamenMapType(layer));
+				pointLayer = new google.maps.FusionTablesLayer({
+					query : {
+						select : 'address',
+						from : '3779309',
+						where : whereDefault
+					}
+				});
+				pointLayer.setMap(map);
+				initAutoComplete(tableId);
+				var zoomToAddress = function() {
+					var address = document.getElementById('addressForm').value;
+					geocoder.geocode({
+						address : address
+					}, function(results, status) {
+						if(status == google.maps.GeocoderStatus.OK) {
+							map.setCenter(results[0].geometry.location);
+							map.setZoom(16);
+
+						} else {
+							window.alert('Sorry, couldn\'t find that address\n ' + status);
+						}
+					});
+				};
+				google.maps.event.addDomListener(document.getElementById('goAddress'), 'click', zoomToAddress);
+				google.maps.event.addDomListener(document.getElementById('goName'), 'click', searchByName);
+				google.maps.event.addDomListener(window, 'load', initialize);
+			}
+			function searchByName() {
+				var name = document.getElementById('nameForm').value;
+				var where = '';
+
+				if(name) {
+					name = name.replace(/'/g, '\\\'');
+					where = "'score' > 0 AND 'name' CONTAINS IGNORING CASE '" + name + "'";
+				}
+				pointLayer.setOptions({
+					query : {
+						select : locationColumn,
+						from : tableId,
+						where : where
+					}
+				});
+				pointLayer.setMap(map);
+			}
+			function resetMap() {
+				map.setCenter(new google.maps.LatLng(33.7489, -84.3881));
+				map.setZoom(11);
+				pointLayer.setOptions({
+					query : {
+						select : locationColumn,
+						from : tableId,
+						where : whereDefault
+					}
+				});
+				pointLayer.setMap(map);
+			}
+			function initAutoComplete(tableId) {
+				var queryText = encodeURIComponent("SELECT 'name', COUNT() " + 'FROM  1Kd7mKMnnhMgmh65iGdr-DJFDEEN7L9jb48eRB4c' + " GROUP BY 'name'");
+				var query = new google.visualization.Query('http://www.google.com/fusiontables/gvizdata?tq=' + queryText);
+
+				query.send(function(response) {
+					var numRows = response.getDataTable().getNumberOfRows();
+					var results = [];
+					for(var i = 0; i < numRows; i++) {
+						results.push(response.getDataTable().getValue(i, 0));
+					}
+					$('#nameForm').autocomplete({
+						source : results,
+						minLength : 22
+					});
+				});
+			}
+		</script>
+		<script type="text/javascript">
+			var _gaq = _gaq || [];
+			_gaq.push(['_setAccount', 'UA-8209114-22']);
+			_gaq.push(['_trackPageview']); (function() {
+				var ga = document.createElement('script');
+				ga.type = 'text/javascript';
+				ga.async = true;
+				ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+				var s = document.getElementsByTagName('script')[0];
+				s.parentNode.insertBefore(ga, s);
+			})();
+		</script>
+	</head>
+	<body onload="initialize()">
+		<div id="map_canvas"></div>
+		<div id="main"></div>
+		<div id="maintext">
+			<div id="fb-root"></div>
+			<h1>Atlanta Health Inspections</h1>
+			<div id="tabs">
+				<ul>
+					<li>
+						<a href="#defaultTab"><span>about</span></a>
+					</li>
+					<li>
+						<a href="#addressTab"><span>find by address</span></a>
+					</li>
+					<li>
+						<a href="#nameTab"><span>find by name</span></a>
+					</li>
+				</ul>
+				<div id="defaultTab">
+					<table>
+						<td id="firstColumn"> A mapping application designed to search for and visualize restaurant health inspection scores in the metro Atlanta area. </td>
+						<td valign="top">
+						<table id ="legend">
+							<tr>
+								<td >Score:</td>
+							</tr>
+							<tr>
+								<td><img src = "images/small_green.png"></td>
+								<td>90-100</td>
+							</tr>
+							<tr>
+								<td><img src = "images/small_yellow.png"></td>
+								<td>75-89</td>
+							</tr>
+							<tr>
+								<td><img src = "images/small_red.png"></td>
+								<td>0-74</td>
+							</tr>
+						</table></td>
+					</table>
+					<a href="https://twitter.com/share" class="twitter-share-button" data-hashtags="atlrestaurantmap"> Tweet</a>
+					<script>
+						! function(d, s, id) {
+							var js, fjs = d.getElementsByTagName(s)[0];
+							if(!d.getElementById(id)) {
+								js = d.createElement(s);
+								js.id = id;
+								js.src = "//platform.twitter.com/widgets.js";
+								fjs.parentNode.insertBefore(js, fjs);
+							}
+						}(document, "script", "twitter-wjs");
+
+					</script>
+					<a href="mailto:jack@spatialsituation.com">Contact</a>
+				</div>
+				<div id="addressTab">
+					<input type="text" id="addressForm" style="width: 250px;" value="230 Peachtree Street NE, Atlanta, GA" onClick="this.value='';">
+					<input type="button" value="Search" id="goAddress">
+					</br><a href="#"onclick="resetMap()">Reset</a>
+				</div>
+				<div id="nameTab">
+					<input type="text" id="nameForm" style="width: 250px;" state= "inactive" value="Waffle House" onClick="this.value=''">
+					<input type="button" value="Search" id="goName">
+					</br><a href="#"onclick="resetMap()">Reset</a>
+				</div>
+			</div>
+		</div>
+		<div id="footer">
+			Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.
+		</div>
+	</body>
+</html>
